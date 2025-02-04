@@ -1,0 +1,13 @@
+cargo install --force cargo-stylus
+cargo stylus --version
+cargo stylus new purrtunes_contract
+edit purrtunes_contract/src/lib.rs
+cargo stylus check
+- if errors
+rustup target add wasm32-unknown-unknown
+
+cargo install --force cargo-stylus
+rustup default 1.80
+rustup target add wasm32-unknown-unknown --toolchain 1.80
+cargo stylus new <YOUR_PROJECT_NAME>
+cargo stylus check

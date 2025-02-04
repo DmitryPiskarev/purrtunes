@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "ai-music-bot"
+version = "0.1.0"
+description = ""
+authors = ["Dmitry Piskarev <dmitry.piskarev@fingular.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.115.8"
+uvicorn = "^0.34.0"
+python-telegram-bot = "^21.10"
+requests = "^2.32.3"
+python-dotenv = "^1.0.1"
+cdp-sdk = "^0.16.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+isort = "^6.0.0"
+pylint = "^3.3.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
