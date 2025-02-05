@@ -11,3 +11,47 @@ rustup default 1.80
 rustup target add wasm32-unknown-unknown --toolchain 1.80
 cargo stylus new <YOUR_PROJECT_NAME>
 cargo stylus check -e https://sepolia-rollup.arbitrum.io/rpc
+
+
+ cargo stylus deploy \
+  --endpoint='https://sepolia-rollup.arbitrum.io/rpc' \
+  --private-key="0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659" \
+  --estimate-gas \
+  --no-verify
+
+
+
+Troubles with Docker
+ls /Applications/Docker.app/Contents/Resources/bin/docker
+ echo 'export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"' >> ~/.zshrc
+ source ~/.zshrc
+ docker -v
+
+
+Exporting abi file
+cargo stylus export-abi --json --output contract.abi
+If errors install solidity
+brew update
+brew upgrade
+brew tap ethereum/ethereum
+brew install solidity
+
+
+
+brew update
+brew upgrade
+brew tap ethereum/ethereum
+brew install solidity
+
+
+0x1b9cbdc65a7bebb0be7f18d93a1896ea1fd46d7a
+
+
+
+cast send 0xc2c0c3398915a2d2e9c33c186abfef3192ee25e8 \
+  --rpc-url 'http://localhost:8547' \
+  --private-key 0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659 \
+  "initializeContract(address,string,string)" \
+  '0x298f9539e484D345CAd143461E4aA3136292a741' \
+  'https://example.com/image.jpg' \
+  'https://example.com/music.mp3'

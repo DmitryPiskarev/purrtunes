@@ -32,7 +32,9 @@ MANIFEST
 *.manifest
 *.spec
 
+/.idea
 # cargo
+/nitro-devnode
 /ai-music-bot/purrtunes_contract/target
 /ai-music-bot/purrtunes_contract/.env
 /ai-music-bot/purrtunes_contract/.env.example
@@ -175,3 +177,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+.DS_Store
