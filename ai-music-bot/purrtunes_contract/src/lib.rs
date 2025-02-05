@@ -4,7 +4,7 @@ extern crate alloc;
 /// Import Stylus SDK and common types
 use stylus_sdk::{alloy_primitives::{Address, U256}, prelude::*};
 use stylus_sdk::{alloy_sol_types::sol, evm};
-use stylus_sdk::storage::{StorageAddress, StorageU32};
+use stylus_sdk::storage::{StorageAddress, StorageArray, StorageU32};
 use alloy_primitives::U32;
 
 
@@ -17,7 +17,7 @@ sol! {
 #[storage]
 pub struct Contract {
     /// The NFT owner
-    owner: StorageAddress,
+    owners: StorageArray<StorageAddress, 1000>,
     /// A random seed (can be used for generative art/audio in the future)
     rng_seed: StorageU32,
 }
@@ -31,9 +31,19 @@ impl Contract {
     }
 
     /// Mint function (one per address)
-    pub fn mint(&mut self, to: Address) {
-        assert!(self.owner.get() == Address::ZERO, "Already minted!");
-        self.owner.set(to);
+    pub fn mint(&mut self, to: Address, token_id: U256) {
+        let index = token_id;
+
+        // Ensure token is not already minted
+        if let Some(owner_storage) = self.owners.get_mut(index) {
+            assert!(owner_storage.get() == Address::ZERO, "Already minted!");
+        }
+
+        // Set the new owner at the given index (using setter)
+        if let Some(mut owner_storage) = self.owners.get_mut(index) {
+            owner_storage.set(to);
+        }
+
         self.rng_seed.set(U32::from(1));  // Future randomness
         evm::log(Minted { owner: to });
     }
@@ -51,16 +61,34 @@ impl Contract {
     }
 
     /// Balance check (1 if owned, 0 otherwise)
-    pub fn balance_of(&self, owner: Address) -> U256 {
-        if owner == self.owner.get() { U256::from(1) } else { U256::from(0) }
+    pub fn balance_of(&mut self, owner: Address, token_id: U256) -> U256 {
+        let index = token_id; // Convert token_id to usize or use as U256 if needed
+
+        // Get the owner of the token from the owners storage
+        if let Some(owner_storage) = self.owners.get_mut(index) {
+            if owner == owner_storage.get() {
+                return U256::from(1); // Owner matches, return 1
+            }
+        }
+
+        U256::from(0) // Owner does not match, return 0
     }
 
     /// Get owner of the NFT
-    pub fn owner_of(&self, token_id: U256) -> Result<Address, Vec<u8>> {
-        assert!(token_id == U256::from(1), "Invalid token ID");
-        let owner = self.owner.get();
-        assert!(owner != Address::ZERO, "Token not minted");
-        Ok(owner)
+    pub fn owner_of(&mut self, token_id: U256) -> Result<Address, Vec<u8>> {
+        let index = token_id; // You may need to adjust this based on your storage structure
+
+        // Attempt to retrieve the owner of the given token ID
+        if let Some(owner_storage) = self.owners.get_mut(index) {
+            let owner = owner_storage.get();
+            if owner != Address::ZERO {
+                Ok(owner) // Return the owner if it's not Address::ZERO
+            } else {
+                Err("Token not minted".to_string().into_bytes()) // Return error if not minted
+            }
+        } else {
+            Err("Token not minted".to_string().into_bytes()) // Handle case if no owner is found
+        }
     }
 
     /// Generate Token URI (Dynamic SVG + JSON)
