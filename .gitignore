@@ -32,6 +32,12 @@ MANIFEST
 *.manifest
 *.spec
 
+# cargo
+/ai-music-bot/purrtunes_contract/target
+/ai-music-bot/purrtunes_contract/.env
+/ai-music-bot/purrtunes_contract/.env.example
+
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
