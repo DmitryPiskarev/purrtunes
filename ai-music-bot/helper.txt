@@ -10,4 +10,4 @@ cargo install --force cargo-stylus
 rustup default 1.80
 rustup target add wasm32-unknown-unknown --toolchain 1.80
 cargo stylus new <YOUR_PROJECT_NAME>
-cargo stylus check
+cargo stylus check -e https://sepolia-rollup.arbitrum.io/rpc
