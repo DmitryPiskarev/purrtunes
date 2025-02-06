@@ -58,3 +58,17 @@ cast send 0xc2c0c3398915a2d2e9c33c186abfef3192ee25e8 \
   'LYRICS'
   'https://example.com/image.jpg' \
   'https://example.com/music.mp3'
+
+
+cast send 0x0702aa6ec5fbc66a4ccddaaa9b29cb667f6528e3 \
+  --rpc-url 'http://localhost:8547' \
+  --private-key 0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659 \
+  "initializeContract(address,string,string,string,string,string,string)" \
+  '0x298f9539e484D345CAd143461E4aA3136292a741' \
+  'Symbol' 'Title' 'Lyrics' 'Meta' 'http://music.com' 'PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgICAgICA8IS0tIEJhY2tncm91bmQgQ2lyY2xlIC0tPgogICAgICAgIDxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iOTAiIGZpbGw9IiMzNDk4ZGIiIHN0cm9rZT0iIzI5ODBiOSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgICAgICAgCiAgICAgICAgPCEtLSBUZXh0IGluIHRoZSBjZW50ZXIgLS0+CiAgICAgICAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGR5PSIuM2VtIj5UaXRsZTwvdGV4dD4KICAgIDwvc3ZnPg=='
+
+
+
+  cargo stylus deploy \
+   --endpoint='http://localhost:8547' \
+   --private-key="0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659"

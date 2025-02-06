@@ -30,8 +30,8 @@ pub struct Contract {
     /// Additional meta data
     meta: StorageString,
 
-    /// The music file URL of the NFT
-    music_url: StorageString,
+    /// The music file of the NFT
+    music_data: StorageString,
 
     /// SVG Template with placeholders
     svg_template: StorageString,
@@ -69,14 +69,23 @@ impl Contract {
         self.title.get_string()
     }
 
-    /// Get the lyrics of the song
+    /// Get the lyrics of the song (Decodes from Base64)
     pub fn lyrics(&self) -> String {
-        self.lyrics.get_string()
+        let encoded_lyrics = self.lyrics.get_string();
+        let decoded_lyrics = base64_decode(&encoded_lyrics);
+        String::from_utf8(decoded_lyrics).expect("Lyrics not valid UTF-8")
     }
 
-    /// Get the meta data of the song
+    /// Get the metadata of the song (Decodes from Base64)
     pub fn meta(&self) -> String {
-        self.meta.get_string()
+        format!("data:audio/mpeg;base64,{}", self.music_data.get_string())
+    }
+
+    /// Get the metadata of the song (Decodes from Base64)
+    pub fn music(&self) -> String {
+        let encoded_music_data = self.music_data.get_string();
+        let decoded_music = base64_decode(&encoded_music_data);
+        String::from_utf8(decoded_music).expect("Music not valid UTF-8")
     }
 
     /// Balance check function to see if the provided owner holds the NFT (1 if owned, 0 otherwise)
@@ -123,20 +132,32 @@ impl Contract {
     pub fn token_uri(&self, token_id: U256) -> String {
         assert!(token_id == U256::from(1), "Invalid token ID");
 
-        // Retrieve the SVG template stored off-chain
-        let svg_template = self.svg_template.get_string();
+        // Decode stored Base64-encoded SVG template
+        let encoded_svg = self.svg_template.get_string();
+        let svg_bytes = base64_decode(&encoded_svg);
+        let svg_decoded = String::from_utf8(svg_bytes).expect("SVG not valid UTF-8");
 
-        // Base64-encode the updated SVG
-        let svg_base64 = base64_encode(svg_template.as_bytes());
-        let svg_data_uri = format!("data:image/svg+xml;base64,{}", svg_base64);
+        // Encode again to Base64 for embedding in data URI
+        let svg_data_uri = format!("data:image/svg+xml;base64,{}", base64_encode(svg_decoded.as_bytes()));
+
+        // Decode Base64-encoded metadata
+        let encoded_meta = self.meta.get_string();
+        let meta_bytes = base64_decode(&encoded_meta);
+        let meta_decoded = String::from_utf8(meta_bytes).expect("Meta not valid UTF-8");
+
+        let encoded_lyrics = self.lyrics.get_string();
+        let lyrics_bytes = base64_decode(&encoded_lyrics);
+        let lyrics_decoded = String::from_utf8(lyrics_bytes).expect("Lyrics not valid UTF-8");
+        let music_data_uri = format!("data:audio/mpeg;base64,{}", self.music_data.get_string());
 
         // Generate JSON metadata dynamically
         let json = format!(
-            r#"{{"name":"{}","description":"{}","image":"{}","music":"{}"}}"#,
+            r#"{{"name":"{}","lyrics":"{}","description":"{}","image":"{}","music":"{}"}}"#,
             self.title.get_string(),
-            self.meta.get_string(),
-            svg_data_uri,  // Use updated SVG as the image
-            self.music_url.get_string()
+            lyrics_decoded,
+            meta_decoded,
+            svg_data_uri,
+            music_data_uri
         );
 
         // Return data URI with encoded JSON
@@ -151,7 +172,7 @@ impl Contract {
         title: String,
         lyrics: String,
         meta: String,
-        music_url: String,
+        music_data: String,
         svg_template: String,  // Expecting SVG template as a string
     ) {
         // Set values for the contract
@@ -160,7 +181,7 @@ impl Contract {
         self.lyrics.set_str(lyrics);
         self.meta.set_str(meta);
         self.owner.set(owner);
-        self.music_url.set_str(music_url);
+        self.music_data.set_str(music_data);
         self.svg_template.set_str(svg_template);  // Store SVG template passed off-chain
 
         // Emit a log event indicating successful initialization
@@ -193,4 +214,28 @@ fn base64_encode(input: &[u8]) -> String {
         }
     }
     result
+}
+
+fn base64_decode(encoded: &str) -> Vec<u8> {
+    let alphabet = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut output = Vec::new();
+    let mut buffer = 0u32;
+    let mut bits_collected = 0;
+
+    for byte in encoded.bytes() {
+        if byte == b'=' {
+            break;
+        }
+
+        let value = alphabet.iter().position(|&c| c == byte);
+        if let Some(value) = value {
+            buffer = (buffer << 6) | (value as u32);
+            bits_collected += 6;
+            if bits_collected >= 8 {
+                bits_collected -= 8;
+                output.push((buffer >> bits_collected) as u8);
+            }
+        }
+    }
+    output
 }

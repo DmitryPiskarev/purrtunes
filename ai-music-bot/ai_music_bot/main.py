@@ -8,6 +8,8 @@ import requests
 from dotenv import load_dotenv
 import os
 import re
+from datetime import datetime
+import base64
 
 load_dotenv()
 
@@ -25,9 +27,17 @@ class MusicRequest(BaseModel):
     title: str
     lyrics: str
     meta: str
-    image_url: str
-    music_url: str
+    music_data: str
     svg_template: str
+
+
+class MusicNFTResponse(BaseModel):
+    transaction_hash: str
+    block_number: int
+    block_hash: str
+    contract_address: str
+    deployed_at: str
+    gas_used: int
 
 
 # Function to deploy the contract and get the contract address
@@ -83,14 +93,19 @@ async def initialize_contract(
         title: str,
         lyrics: str,
         meta: str,
-        music_url: str,
+        music_data: str,
         svg_template: str,
         contract_address: str,
-) -> str:
+):
     try:
         contract_address = contract_address.strip()  # Remove extra spaces
         contract_address = contract_address.replace('\x1b[38;5;183;1m', '').replace('\x1b[0;0m',
                                                                                     '')  # Strip color formatting
+
+        # Base64 encode the SVG
+        svg_encoded = base64.b64encode(svg_template.encode()).decode()
+        lyrics_encoded = base64.b64encode(lyrics.encode()).decode()
+        meta_encoded = base64.b64encode(meta.encode()).decode()
 
         # Ensure the address starts with '0x' and is valid
         if not contract_address.startswith('0x'):
@@ -101,14 +116,14 @@ async def initialize_contract(
             "cast", "send", contract_address,
             "--rpc-url", os.getenv("RPC_URL", "http://localhost:8547"),
             "--private-key", os.getenv("PRIVATE_KEY"),
-            "initialize_contract(address,string,string,string,string,string,string)",  # Adjusted parameters
+            "initializeContract(address,string,string,string,string,string,string)",  # Adjusted parameters
             owner_address,
-            symbol,  # symbol to be passed dynamically
-            title,  # title to be passed dynamically
-            lyrics,  # lyrics to be passed dynamically
-            meta,  # meta to be passed dynamically
-            music_url,  # music_url to be passed dynamically
-            svg_template  # svg_template to be passed dynamically (string)
+            symbol,
+            title,
+            lyrics_encoded,
+            meta_encoded,
+            music_data,
+            svg_encoded
         ]
 
         print(f"\n\n\n {command} \n\n\n")
@@ -132,7 +147,7 @@ async def initialize_contract(
             transaction_hash = None
             block_number = None
             gas_used = None
-            block_hush = None
+            block_hash = None
 
             # Iterate over each line to extract relevant information
             for line in lines:
@@ -146,7 +161,7 @@ async def initialize_contract(
 
                 # Extract blockHash
                 elif "blockHash" in line:
-                    block_hush = line.strip().split(" ")[-1].strip()
+                    block_hash = line.strip().split(" ")[-1].strip()
 
                 # # Extract contractAddress (if provided)
                 # elif "contractAddress" in line:
@@ -158,13 +173,13 @@ async def initialize_contract(
             # Check if we have all the required data
             if transaction_hash and block_number:
                 # Return the extracted information in a formatted string
-                return (
-                    f"\nTransaction Hash: {transaction_hash}\n"
-                    f"Block Number: {block_number}\n"
-                    f"Block Hush: {block_hush}\n"
-                    f"Contract Address: {contract_address if contract_address else 'Not provided'}\n"
-                    f"Deployed at: {contract_address}\n"
-                    f"Gas used: {gas_used}"
+                return MusicNFTResponse(
+                    transaction_hash=transaction_hash,
+                    block_number=block_number,
+                    block_hash=block_hash,
+                    deployed_at=str(datetime.now()),
+                    contract_address=contract_address,
+                    gas_used=gas_used
                 )
             else:
                 raise ValueError("Failed to extract required data.")
@@ -189,14 +204,15 @@ async def generate_music(request: MusicRequest):
         music_url = await initialize_contract(
             owner_address=request.owner_address,
             symbol=request.symbol,
-            name=request.name,
-            description=request.description,
-            image_url=request.image_url,
-            music_url=request.music_url,
+            title=request.title,
+            lyrics=request.lyrics,
+            meta=request.meta,
+            music_data=request.music_data,
+            svg_template=request.svg_template,
             contract_address=contract_address
         )
 
-        return {"music_url": music_url}
+        return music_url
 
     except Exception as e:
         logger.error(f"Error generating music: {e}")
