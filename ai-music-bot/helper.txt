@@ -53,5 +53,8 @@ cast send 0xc2c0c3398915a2d2e9c33c186abfef3192ee25e8 \
   --private-key 0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659 \
   "initializeContract(address,string,string)" \
   '0x298f9539e484D345CAd143461E4aA3136292a741' \
+  'SYMBOL'
+  'NAME'
+  'LYRICS'
   'https://example.com/image.jpg' \
   'https://example.com/music.mp3'
