@@ -81,11 +81,11 @@ impl Contract {
         format!("data:audio/mpeg;base64,{}", self.music_data.get_string())
     }
 
-    /// Get the metadata of the song (Decodes from Base64)
+    /// Get the metadata of the song
     pub fn music(&self) -> String {
-        let encoded_music_data = self.music_data.get_string();
-        let decoded_music = base64_decode(&encoded_music_data);
-        String::from_utf8(decoded_music).expect("Music not valid UTF-8")
+        // Fetch the IPFS hash stored in the contract (this is a reference to the music file on IPFS)
+        let music_ipfs_hash = self.music_data.get_string();
+        format!("ipfs://{}", music_ipfs_hash)
     }
 
     /// Balance check function to see if the provided owner holds the NFT (1 if owned, 0 otherwise)
@@ -145,10 +145,13 @@ impl Contract {
         let meta_bytes = base64_decode(&encoded_meta);
         let meta_decoded = String::from_utf8(meta_bytes).expect("Meta not valid UTF-8");
 
+        // Decode lyrics from Base64
         let encoded_lyrics = self.lyrics.get_string();
         let lyrics_bytes = base64_decode(&encoded_lyrics);
         let lyrics_decoded = String::from_utf8(lyrics_bytes).expect("Lyrics not valid UTF-8");
-        let music_data_uri = format!("data:audio/mpeg;base64,{}", self.music_data.get_string());
+
+        // Get the music IPFS URL (instead of directly embedding Base64)
+        let music_ipfs_url = self.music();
 
         // Generate JSON metadata dynamically
         let json = format!(
@@ -157,7 +160,7 @@ impl Contract {
             lyrics_decoded,
             meta_decoded,
             svg_data_uri,
-            music_data_uri
+            music_ipfs_url
         );
 
         // Return data URI with encoded JSON

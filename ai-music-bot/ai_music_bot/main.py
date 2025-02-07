@@ -1,7 +1,7 @@
 import subprocess
 import json
 import asyncio
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import logging
 import requests
@@ -10,6 +10,7 @@ import os
 import re
 from datetime import datetime
 import base64
+from .utils import get_nft_metadata_from_contract
 
 load_dotenv()
 
@@ -217,6 +218,13 @@ async def generate_music(request: MusicRequest):
     except Exception as e:
         logger.error(f"Error generating music: {e}")
         return {"error": str(e)}
+
+
+# FastAPI route to get NFT metadata
+@app.get("/nft_metadata/{contract_address}")
+async def get_nft_metadata(contract_address: str):
+    """Endpoint to fetch NFT metadata from the blockchain."""
+    return await get_nft_metadata_from_contract(contract_address)
 
 
 if __name__ == "__main__":

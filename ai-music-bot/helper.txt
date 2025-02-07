@@ -72,3 +72,21 @@ cast send 0x0702aa6ec5fbc66a4ccddaaa9b29cb667f6528e3 \
   cargo stylus deploy \
    --endpoint='http://localhost:8547' \
    --private-key="0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659"
+
+   cast run --debug 0x3df948c956e14175f43670407d5796b95bb219d8 \
+     --rpc-url http://localhost:8547 \
+     --private-key="0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659"
+
+
+
+cast send 0x4a2ba922052ba54e29c5417bc979daaf7d5fe4f4 \
+    --rpc-url http://localhost:8547 \
+    --private-key 0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659 \
+    "initializeContract(address,string,string,string,string,string,string)" \
+    "0x298f9539e484D345CAd143461E4aA3136292a741" \
+    "MUSICNFT" \
+    "Yeah" \
+    "Test Lyrics" \
+    "Test Meta" \
+    "Test Music Data" \
+    "Test SVG"
