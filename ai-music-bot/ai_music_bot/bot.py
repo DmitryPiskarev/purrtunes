@@ -5,8 +5,10 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 
 from dotenv import load_dotenv
 import os
+import io
+import cairosvg
 import base64
-from utils import upload_to_ipfs
+from utils import upload_to_ipfs, generate_cosmic_svg
 
 load_dotenv()
 
@@ -150,10 +152,7 @@ async def generate_music(update: Update, context: CallbackContext) -> None:
 
         # Generate SVG template
         title = user_metadata[user_id]["title"]
-        svg_template = f'''<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="100" cy="100" r="90" fill="#3498db" stroke="#2980b9" stroke-width="5"/>
-            <text x="50%" y="50%" font-size="20" text-anchor="middle" fill="#ffffff" dy=".3em">{title}</text>
-        </svg>'''
+        svg_template = generate_cosmic_svg(title=title)
 
         data = {
             "owner_address": user_metadata[user_id]["owner_address"],
@@ -195,8 +194,10 @@ async def generate_music(update: Update, context: CallbackContext) -> None:
 
 
 async def get_nft(update: Update, context: CallbackContext) -> None:
-    """Fetches NFT metadata from the contract."""
+    """Fetches NFT metadata, decodes SVG, and sends it as an image."""
     user_id = update.message.from_user.id
+
+    # Check if user has an NFT
     if user_id not in user_metadata or "nft_address" not in user_metadata[user_id]:
         await update.message.reply_text("❌ No NFT found. Use `/generate_music` first.")
         return
@@ -205,23 +206,54 @@ async def get_nft(update: Update, context: CallbackContext) -> None:
     nft_api_url = f"{os.getenv('BASE_URL')}/nft_metadata/{contract_address}"
 
     try:
+        # Fetch NFT metadata
         response = requests.get(nft_api_url, timeout=30)
-        if response.status_code == 200:
-            nft_data = response.json()
-
-            nft_info = (
-                f"🎵 **Your NFT Metadata:**\n\n"
-                f"📛 **Title:** {nft_data.get('name', 'N/A')}\n"
-                f"📜 **Lyrics:** {nft_data.get('lyrics', 'N/A')}\n"
-                f"📝 **Description:** {nft_data.get('description', 'N/A')}\n"
-                f"🎨 **NFT Image:** [Click to View]({nft_data.get('image', '')})\n"
-                f"🎶 **Music:** [Listen Here]({nft_data.get('music', '')})\n"
-            )
-
-            await update.message.reply_text(nft_info, parse_mode="Markdown", disable_web_page_preview=False)
-
-        else:
+        if response.status_code != 200:
             await update.message.reply_text("⚠️ Failed to fetch NFT data.")
+            return
+
+        nft_data = response.json()
+
+        # Extract metadata
+        title = nft_data.get("name", "N/A")
+        lyrics = nft_data.get("lyrics", "N/A")
+        description = nft_data.get("description", "N/A")
+        music_link = nft_data.get("music", "").replace("ipfs://ipfs://", "https://ipfs.io/ipfs/")
+
+        # Decode the Base64-encoded SVG
+        image_base64 = nft_data.get("image", "").replace("data:image/svg+xml;base64,", "").strip()
+        if image_base64:
+            try:
+                svg_data = base64.b64decode(image_base64)
+
+                # Convert SVG to PNG
+                png_data = cairosvg.svg2png(bytestring=svg_data)
+
+                # Prepare PNG file for Telegram
+                png_file = io.BytesIO(png_data)
+                png_file.name = "nft_image.png"
+                has_image = True
+            except Exception as e:
+                logger.error(f"Error decoding SVG: {e}")
+                has_image = False
+        else:
+            has_image = False
+
+        # Format metadata message
+        nft_info = (
+            f"🎵 **Your NFT Metadata:**\n\n"
+            f"📛 **Title:** {title}\n"
+            f"📜 **Lyrics:** {lyrics}\n"
+            f"📝 **Description:** {description}\n"
+            f"🎶 **Music:** [🎧 Listen Here]({music_link})"
+        )
+
+        # Send the image first, then the metadata message
+        if has_image:
+            await update.message.reply_photo(photo=png_file, caption=f"🎨 **NFT Artwork - {title}**")
+
+        # Send metadata message
+        await update.message.reply_text(nft_info, parse_mode="Markdown", disable_web_page_preview=False)
 
     except Exception as e:
         logger.error(f"Error fetching NFT metadata: {e}")

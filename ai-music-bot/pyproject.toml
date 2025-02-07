@@ -13,6 +13,8 @@ python-telegram-bot = "^21.10"
 requests = "^2.32.3"
 python-dotenv = "^1.0.1"
 cdp-sdk = "^0.16.0"
+eth-abi = "^5.2.0"
+cairosvg = "^2.7.1"
 
 
 [tool.poetry.group.dev.dependencies]
