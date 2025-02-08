@@ -2,6 +2,7 @@ import subprocess
 import json
 import asyncio
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import logging
 import requests
@@ -15,6 +16,21 @@ from .utils import get_nft_metadata_from_contract
 load_dotenv()
 
 app = FastAPI()
+
+# CORS configuration
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+# Add CORSMiddleware to the app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # List of origins that are allowed to access the API
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE)
+    allow_headers=["*"],  # Allow all headers
+)
 
 # Logger setup
 logging.basicConfig(level=logging.INFO)
@@ -218,6 +234,43 @@ async def generate_music(request: MusicRequest):
     except Exception as e:
         logger.error(f"Error generating music: {e}")
         return {"error": str(e)}
+
+
+# A mock database to store linked wallets
+linked_wallets = {}
+
+
+# Define the request model
+class LinkWalletRequest(BaseModel):
+    user_id: str
+    wallet_address: str
+
+
+@app.post("/link_wallet")
+async def link_wallet(request: LinkWalletRequest):
+    user_id = request.user_id
+    wallet_address = request.wallet_address
+
+    # Check if the wallet address is already linked to another user
+    if wallet_address in linked_wallets.values():
+        raise HTTPException(
+            status_code=400,
+            detail="This wallet address is already linked to another user."
+        )
+
+    # Check if the user already has a linked wallet
+    if user_id in linked_wallets:
+        raise HTTPException(
+            status_code=400,
+            detail=f"User {user_id} already has a linked wallet."
+        )
+
+    # Simulating the process of linking a wallet (store it in the dictionary)
+    linked_wallets[user_id] = wallet_address
+
+    logger.info(f"Wallet {wallet_address} linked to user {user_id}")
+
+    return {"status": "success", "message": "Wallet linked successfully!"}
 
 
 # FastAPI route to get NFT metadata
