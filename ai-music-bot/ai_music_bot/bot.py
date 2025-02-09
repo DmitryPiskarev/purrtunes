@@ -1,14 +1,13 @@
 import logging
 import requests
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
-
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
 from dotenv import load_dotenv
 import os
 import io
 import cairosvg
 import base64
-from utils import upload_to_ipfs, generate_cosmic_svg
+from utils import upload_to_ipfs, generate_cosmic_svg, get_user_data
 
 load_dotenv()
 
@@ -25,7 +24,47 @@ user_metadata = {}
 
 # Command for starting the bot
 async def start(update: Update, context: CallbackContext) -> None:
-    await update.message.reply_text("🎵 Welcome to AI Music Bot! Upload an audio file to begin.")
+    user_id = update.message.from_user.id
+    # Check if the user has a registered wallet
+    if user_id in user_metadata:
+
+        user_data = get_user_data(str(user_id))  # Retrieve user data from FastAPI
+
+        if "status" in user_data and user_data["status"] == "error":
+            await update.message.reply_text(user_data["message"])  # Send error message to user
+        else:
+            user_metadata[user_id]["owner_address"] = user_data['wallet_address']
+            await update.message.reply_text(f"✅ **Your wallet address is:**\n {user_data['wallet_address']}", parse_mode="Markdown")
+    else:
+        await update.message.reply_text("🎵 Welcome to AI Music Bot! Please register at the web page: /register")
+
+
+# Add this new command in your bot
+async def register(update: Update, context: CallbackContext) -> None:
+    """Sends the user a link to the registration page."""
+    user_id = update.message.from_user.id
+
+    # Store the user's Telegram ID for later (so we can link it when they return)
+    user_metadata[user_id] = {"status": "awaiting_registration"}
+
+    # Send the registration link with userId as a query parameter
+    registration_url = f"http://localhost:3000?userId={user_id}"
+
+    await update.message.reply_text(
+        f"📝 **To register, please go to the following link:** {registration_url}\n"
+        f"**After registration, you'll be redirected back here and I will show you your wallet address.**",
+        parse_mode="Markdown"
+    )
+
+
+async def approve_address(update: Update, context: CallbackContext):
+    """Handles the /approve_address command."""
+    if context.args:
+        wallet_address = context.args[0]  # Extract wallet address
+        await update.message.reply_text(f"✅ Address {wallet_address} approved successfully!")
+        # Add your logic to store or verify the address
+    else:
+        await update.message.reply_text("❌ Please provide a valid wallet address.")
 
 
 async def upload_music(update: Update, context: CallbackContext) -> None:
@@ -42,8 +81,7 @@ async def upload_music(update: Update, context: CallbackContext) -> None:
 
     await message.reply_text("✅ Audio received! Now, set:\n"
                              "🎶 Lyrics: `/set_lyrics <your lyrics>`\n"
-                             "🎵 Title: `/set_title <song title>`\n"
-                             "💰 Address: `/set_address <wallet>`")
+                             "🎵 Title: `/set_title <song title>`")
 
 
 async def set_lyrics(update: Update, context: CallbackContext) -> None:
@@ -78,7 +116,7 @@ async def set_title(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text("✅ Title set!")
 
 
-async def set_address(update: Update, context: CallbackContext) -> None:
+async def change_address(update: Update, context: CallbackContext) -> None:
     """Stores wallet address."""
     user_id = update.message.from_user.id
     if user_id not in user_metadata:
@@ -260,14 +298,36 @@ async def get_nft(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("❌ An error occurred while retrieving your NFT.")
 
 
+async def handle_callback(update: Update, context: CallbackContext):
+    query = update.callback_query
+
+    if query is None:
+        print("Received an update that is not a callback query.")
+        return  # Exit the function if it's not an inline button click
+
+    data = query.data  # Example: "approve_0x298f9539e484D345CAd143461E4aA3136292a741"
+
+    print(f"\n\ndata: {data}\n\n")
+
+    if data.startswith("approve_"):
+        wallet_address = data.split("_", 1)[1]  # Extract wallet address
+        await query.answer()  # ✅ FIXED: Awaiting the function
+        await query.message.reply_text(f"✅ Address `{wallet_address}` approved!", parse_mode="Markdown")  # ✅ Awaited
+
+
+
 def main():
     app = Application.builder().token(TOKEN).build()
 
+    app.add_handler(CallbackQueryHandler(handle_callback))
+
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("register", register))
+    app.add_handler(CommandHandler("approve_address", approve_address))
     app.add_handler(MessageHandler(filters.AUDIO | filters.Document.MP3 | filters.VOICE, upload_music))
     app.add_handler(CommandHandler("set_lyrics", set_lyrics))
     app.add_handler(CommandHandler("set_title", set_title))
-    app.add_handler(CommandHandler("set_address", set_address))
+    app.add_handler(CommandHandler("set_address", change_address))
     app.add_handler(CommandHandler("verify_data", verify_data))
     app.add_handler(CommandHandler("generate_music", generate_music))
     app.add_handler(CommandHandler("get_nft", get_nft))

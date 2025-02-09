@@ -241,36 +241,51 @@ linked_wallets = {}
 
 
 # Define the request model
-class LinkWalletRequest(BaseModel):
+# Use the same model for adding user (or a new one if you want a different structure)
+class AddUserRequest(BaseModel):
+    email: str
+    user_id_tg: str
     user_id: str
     wallet_address: str
+    chain_type: str
 
 
-@app.post("/link_wallet")
-async def link_wallet(request: LinkWalletRequest):
+# In-memory session to hold user data temporarily (in production, use a real database)
+user_metadata = {}
+
+
+@app.post("/add_user")
+async def add_user(request: AddUserRequest):
+    """Store user data temporarily when they register."""
+    email = request.email
+    user_id_tg = request.user_id_tg
     user_id = request.user_id
     wallet_address = request.wallet_address
+    chain_type = request.chain_type
 
-    # Check if the wallet address is already linked to another user
-    if wallet_address in linked_wallets.values():
-        raise HTTPException(
-            status_code=400,
-            detail="This wallet address is already linked to another user."
-        )
+    # Store the user data in a temporary session (use a database in production)
+    user_metadata[user_id_tg] = {
+        "email": email,
+        "user_id": user_id,
+        "wallet_address": wallet_address,
+        "chain_type": chain_type,
+        "status": "registered"
+    }
 
-    # Check if the user already has a linked wallet
-    if user_id in linked_wallets:
-        raise HTTPException(
-            status_code=400,
-            detail=f"User {user_id} already has a linked wallet."
-        )
+    logger.info(f"User {email} with ID {user_id} and wallet {wallet_address} added.")
 
-    # Simulating the process of linking a wallet (store it in the dictionary)
-    linked_wallets[user_id] = wallet_address
+    return {"status": "success", "message": "User added successfully!"}
 
-    logger.info(f"Wallet {wallet_address} linked to user {user_id}")
 
-    return {"status": "success", "message": "Wallet linked successfully!"}
+# Store user data in session
+@app.get("/get_user/{user_id}")
+async def get_user(user_id: str):
+    """Retrieve user data from the session."""
+    user_data = user_metadata.get(user_id)
+    if user_data:
+        return user_data
+    else:
+        return {"status": "error", "message": "User data not found."}
 
 
 # FastAPI route to get NFT metadata

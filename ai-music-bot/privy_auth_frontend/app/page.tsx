@@ -1,34 +1,97 @@
 'use client';
 
 import { usePrivy } from '@privy-io/react-auth';
-import { useEffect } from 'react';
-import Image from "next/image";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function Home() {
   const { login, logout, authenticated, user } = usePrivy();
+  const router = useRouter();
+  const [userTgId, setUserTgId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false); // Track loading state
+
+  // Extract userId from the URL query parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const userIdFromUrl = params.get('userId');
+    if (userIdFromUrl) {
+      setUserTgId(userIdFromUrl); // Store the userId from the URL
+    }
+  }, []);
 
   useEffect(() => {
     if (authenticated && user) {
       // Get user details (e.g., userId, wallet address)
+      const email = user?.email?.address;
       const userId = user.id;
-      const walletAddress = user.wallet?.address;
+      const walletAddress = user.wallet?.address || '';
+      const chainType = user.wallet?.chainType || '';
 
-      // Send a POST request to your Telegram bot endpoint to link the wallet
-      if (userId && walletAddress) {
-        fetch('http://127.0.0.1:8000/link_wallet', {
+      // Send a POST request to your backend to add the user to the mock database
+      if (userId) {
+        fetch('http://127.0.0.1:8000/add_user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId, wallet_address: walletAddress }),
+          body: JSON.stringify({
+            email: email || userId,
+            user_id_tg: userTgId,
+            user_id: userId,
+            wallet_address: walletAddress,
+            chain_type: chainType,
+          }),
         }).then(response => {
           if (response.ok) {
-            window.location.href = 'https://t.me/purrtunes_bot'; // Redirect to the bot
+            // Send Telegram message and wait for a successful response before redirecting
+            setIsLoading(true); // Start loading spinner
+
+            sendTelegramMessage(userTgId, walletAddress).then(() => {
+              setIsLoading(false); // Stop loading spinner
+
+              // Add a small delay before redirecting
+              setTimeout(() => {
+                router.push(`https://t.me/purrtunes_bot?start=${userId}`);
+              }, 1000); // Delay of 1 second before redirect
+            });
           }
         }).catch(error => {
-          console.error("Error linking wallet:", error);
+          console.error('Error adding user to backend:', error);
         });
       }
     }
   }, [authenticated, user]);
+
+  const sendTelegramMessage = async (userId, walletAddress) => {
+    try {
+      const botToken = process.env.NEXT_PUBLIC_TG_ID;
+      const message = `✅ **Your wallet address is:**\n\n`
+            + `💰 **Address:** \`${walletAddress}\`\n\n`
+            + `🚀 Use the bot to mint your music NFT!\n\n`
+            + `🎶 Start by sending me your music or record a Voice message! 🙀\n\n`;
+
+      const response = await fetch('/api/sendMessage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          message: message,
+          walletAddress: walletAddress,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('Telegram message sent successfully:', data);
+      } else {
+        console.error('Error sending message:', data.error);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
 
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
@@ -43,7 +106,27 @@ export default function Home() {
         />
         {authenticated ? (
           <>
-            <h2 className="text-xl">Welcome {user?.email}</h2>
+            <h2 className="text-xl">Welcome onboard!</h2>
+            <p>{user?.email?.address || user.id}</p>
+            <h2>
+              {user?.wallet?.address ? (
+                <>
+                  <span>Wallet Address: {user.wallet?.address}</span>
+                  <span>Chain type: {user.wallet?.chainType}</span>
+                </>
+              ) : (
+                <span>No wallet linked</span>
+              )}
+            </h2>
+
+            {/* Loading UI */}
+            {isLoading ? (
+              <div className="mt-4 text-center">
+                <p>Sending your wallet address...</p>
+                <div className="spinner"></div> {/* Add your spinner here */}
+              </div>
+            ) : null}
+
             <button
               onClick={logout}
               className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
@@ -53,10 +136,10 @@ export default function Home() {
           </>
         ) : (
           <button
-            onClick={login}
+            onClick={() => login({ prefill: { type: 'email', value: '' } })} // You can prefill if needed
             className="px-4 py-2 bg-blue-500 text-white rounded"
           >
-            Login with Privy
+            Login with Email
           </button>
         )}
       </main>

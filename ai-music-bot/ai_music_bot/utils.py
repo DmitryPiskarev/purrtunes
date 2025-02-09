@@ -211,3 +211,14 @@ def generate_cosmic_svg(title: str) -> str:
     return svg
 
 
+# Function to retrieve user data by user_id from the FastAPI endpoint
+def get_user_data(user_id: str):
+    url = f"{os.getenv('BASE_URL', 'http://127.0.0.1:8000')}/get_user/{user_id}"  # Replace with your FastAPI server URL
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()  # Return the user data from the API
+        else:
+            return {"status": "error", "message": "User data not found."}
+    except requests.exceptions.RequestException as e:
+        return {"status": "error", "message": str(e)}
