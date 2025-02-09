@@ -16,6 +16,11 @@ This MVP 1.0 PurrTunes (https://t.me/purrtunes_bot) is a Telegram Bot that allow
 - **Easy Setup**: Use a simple local setup with FastAPI backend and Next.js frontend.
 
 ---
+## <img src="ah.png" alt="Project Logo" width="30"> Agentic Ethereum Partners techs
+![Project Logo](Arbitrum.png)
+<img src="Privy.png" alt="Privy" width="208">
+
+---
 
 ### Technology Stack
 - **Backend**: FastAPI
