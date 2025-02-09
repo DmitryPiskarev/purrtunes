@@ -17,6 +17,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def sanitize_data(data: str) -> str:
+    # Replace newline characters with a placeholder (e.g., '\n')
+    return data.replace("\n", "\\n")
+
+
+def restore_data(sanitized_data: str) -> str:
+    # Replace the placeholder '\\n' back to actual newlines
+    return sanitized_data.replace("\\n", "\n")
+
+
 async def get_nft_metadata_from_contract(contract_address: str):
     """Calls the smart contract to get NFT metadata using cast call and decodes ABI-encoded response."""
     try:
@@ -67,11 +77,13 @@ async def get_nft_metadata_from_contract(contract_address: str):
 
         # Step 5: Decode Base64 JSON
         metadata_json = base64.b64decode(metadata_base64).decode()
+        metadata_dict = json.loads(metadata_json)
 
-        logging.info(f"\n\nnft_data: {metadata_json}\n\n")
+        logging.info(f"\n\nnft_data: {metadata_dict}\n\n")
 
-        # Step 6: Convert JSON string to dictionary and return
-        return json.loads(metadata_json)
+        metadata_dict["lyrics"] = restore_data(metadata_dict["lyrics"])
+
+        return metadata_dict
 
     except Exception as e:
         logger.error(f"Error fetching NFT metadata: {e}")

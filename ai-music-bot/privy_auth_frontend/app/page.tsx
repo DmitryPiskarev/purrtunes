@@ -35,7 +35,7 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: email || userId,
-            user_id_tg: userTgId,
+            user_id_tg: userTgId || "not_from_tg",  // for testing for now
             user_id: userId,
             wallet_address: walletAddress,
             chain_type: chainType,
@@ -43,15 +43,15 @@ export default function Home() {
         }).then(response => {
           if (response.ok) {
             // Send Telegram message and wait for a successful response before redirecting
-            setIsLoading(true); // Start loading spinner
+            setIsLoading(true);
 
             sendTelegramMessage(userTgId, walletAddress).then(() => {
-              setIsLoading(false); // Stop loading spinner
+              setIsLoading(false);
 
-              // Add a small delay before redirecting
+              // Let's add a small delay before redirecting
               setTimeout(() => {
                 router.push(`https://t.me/purrtunes_bot?start=${userId}`);
-              }, 1000); // Delay of 1 second before redirect
+              }, 1000);
             });
           }
         }).catch(error => {
@@ -64,10 +64,12 @@ export default function Home() {
   const sendTelegramMessage = async (userId, walletAddress) => {
     try {
       const botToken = process.env.NEXT_PUBLIC_TG_ID;
-      const message = `✅ **Your wallet address is:**\n\n`
-            + `💰 **Address:** \`${walletAddress}\`\n\n`
-            + `🚀 Use the bot to mint your music NFT!\n\n`
-            + `🎶 Start by sending me your music or record a Voice message! 🙀\n\n`;
+      const message = `🎉 **Thank you for registering!**\n\n`
+                  + `✅ **Your wallet address has been successfully linked.**\n\n`
+                  + `💰 **Address:** \`${walletAddress}\`\n\n`
+                  + `🚀 **Now you're ready to mint your music NFT!**\n\n`
+                  + `🎶 **Get started by approving the address pushing the button below.**\n\n`
+                  + `🔥 Let's make some magic happen! 🎵`;
 
       const response = await fetch('/api/sendMessage', {
         method: 'POST',

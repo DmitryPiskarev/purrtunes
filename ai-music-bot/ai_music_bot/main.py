@@ -11,7 +11,7 @@ import os
 import re
 from datetime import datetime
 import base64
-from .utils import get_nft_metadata_from_contract
+from .utils import get_nft_metadata_from_contract, sanitize_data, restore_data
 
 load_dotenv()
 
@@ -21,6 +21,7 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://d02c-81-177-214-101.ngrok-free.app",  # This is my Ngrok URL
 ]
 
 # Add CORSMiddleware to the app
@@ -121,7 +122,9 @@ async def initialize_contract(
 
         # Base64 encode the SVG
         svg_encoded = base64.b64encode(svg_template.encode()).decode()
-        lyrics_encoded = base64.b64encode(lyrics.encode()).decode()
+        # lyrics_encoded = base64.b64encode(lyrics.encode()).decode()
+        sanitized_data = sanitize_data(lyrics)
+        lyrics_encoded = base64.b64encode(sanitized_data.encode('utf-8')).decode('utf-8')
         meta_encoded = base64.b64encode(meta.encode()).decode()
 
         # Ensure the address starts with '0x' and is valid

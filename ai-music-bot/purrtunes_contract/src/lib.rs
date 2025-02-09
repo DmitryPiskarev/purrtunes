@@ -9,7 +9,7 @@ use stylus_sdk::tx;
 /// Event emitted when a mint occurs
 sol! {
     event Minted(address indexed owner);
-    event LogMintingSuccess(string message); // Added custom logging event
+    event LogMintingSuccess(string message);
 }
 
 #[entrypoint]
