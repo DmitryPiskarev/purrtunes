@@ -49,7 +49,7 @@ async def register(update: Update, context: CallbackContext) -> None:
     user_metadata[user_id] = {"status": "awaiting_registration"}
 
     # Send the registration link with userId as a query parameter
-    ngrok = "https://d02c-81-177-214-101.ngrok-free.app"
+    ngrok = "https://a58a-81-177-214-101.ngrok-free.app"
     registration_url = f"{ngrok}?userId={user_id}"  # http://localhost:3000
 
     # Create a button with the registration link

@@ -21,7 +21,7 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://d02c-81-177-214-101.ngrok-free.app",  # This is my Ngrok URL
+    "https://a58a-81-177-214-101.ngrok-free.app",  # This is my Ngrok URL
 ]
 
 # Add CORSMiddleware to the app
