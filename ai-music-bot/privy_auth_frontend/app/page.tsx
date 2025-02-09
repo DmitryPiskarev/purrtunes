@@ -10,6 +10,7 @@ export default function Home() {
   const router = useRouter();
   const [userTgId, setUserTgId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false); // Track loading state
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
   // Extract userId from the URL query parameters
   useEffect(() => {
@@ -100,7 +101,7 @@ export default function Home() {
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
         <Image
           className="dark:invert"
-          src="/next.svg"
+          src="/logo_dark.svg"
           alt="Next.js logo"
           width={180}
           height={38}
@@ -138,10 +139,17 @@ export default function Home() {
           </>
         ) : (
           <button
-            onClick={() => login({ prefill: { type: 'email', value: '' } })} // You can prefill if needed
-            className="px-4 py-2 bg-blue-500 text-white rounded"
+            onClick={() => {
+              setIsLoggingIn(true);
+              login({ prefill: { type: 'email', value: '' } }).finally(() => setIsLoggingIn(false));
+            }}
+            className="px-4 py-2 rounded transition-all duration-300 bg-black text-white dark:bg-white dark:text-black flex items-center justify-center min-w-[150px]"
           >
-            Login with Email
+            {isLoggingIn ? (
+              <div className="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              'Login with Email'
+            )}
           </button>
         )}
       </main>
